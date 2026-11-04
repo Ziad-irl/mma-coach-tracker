@@ -295,6 +295,11 @@ class Store(object):
                  parse_date(on_date or today()).isoformat()),
             ).lastrowid
 
+    def get_charge(self, charge_id):
+        return self.conn.execute(
+            "SELECT * FROM charges WHERE id = ?", (charge_id,)
+        ).fetchone()
+
     def delete_charge(self, charge_id):
         """Delete a manual charge. Subscription and sale charges must be
         removed through delete_subscription / delete_sale."""

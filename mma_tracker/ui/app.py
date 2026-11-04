@@ -54,7 +54,8 @@ class App(object):
 
     def build(self):
         from .dashboard import DashboardTab
-        tab_classes = [DashboardTab]
+        from .members import MembersTab
+        tab_classes = [DashboardTab, MembersTab]
 
         for child in self.root.winfo_children():
             child.destroy()
@@ -100,4 +101,11 @@ class App(object):
         self.build()
 
     def open_member(self, member_id):
-        pass
+        from .members import MemberWindow
+        win = self.member_windows.get(member_id)
+        if win is None or not win.winfo_exists():
+            win = MemberWindow(self, member_id)
+            self.member_windows[member_id] = win
+        win.deiconify()
+        win.lift()
+        win.focus_set()
