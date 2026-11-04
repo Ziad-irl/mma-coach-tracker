@@ -73,6 +73,31 @@ If Windows 7 says a DLL is missing, install **Windows 7 SP1** and update
 2. Copy this repository to the PC.
 3. Double-click `run.bat`.
 
+## Branded builds (one per gym)
+
+A brand gives the app a gym's own name, window icon, exe icon and a logo on
+the dashboard. Each brand lives in `brands/<brand>/`:
+
+```
+brands/spider-team/
+  brand.json        {"name": "Spider Team", "exe": "SpiderTeam"}
+  logo-source.jpg   the original logo
+  icon.ico          generated: exe and window icon
+  logo.png          generated: dashboard logo
+```
+
+Build it with `build.bat spider-team`. That gives `dist\SpiderTeam\SpiderTeam.exe`.
+CI also uploads a `SpiderTeam-win32` artifact. A branded app keeps its own
+`data` folder, so it never shares data with another copy.
+
+To add a gym:
+
+1. Create `brands/<name>/` with a `brand.json` and a square `logo-source.*` image.
+2. Run `python tools/make_brand_icons.py brands/<name>` (needs Pillow, dev machine only).
+3. Run `build.bat <name>`.
+
+To try a brand from source: `set MMA_BRAND=spider-team` then `python -m mma_tracker`.
+
 ## Data and backups
 
 - Everything is stored in one file: `data\tracker.db`, next to the app.
