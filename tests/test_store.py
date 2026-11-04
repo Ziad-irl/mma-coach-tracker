@@ -34,6 +34,21 @@ class MemberTests(StoreTestCase):
         self.assertEqual(len(self.s.list_members(include_archived=True)), 2)
 
 
+    def test_delete_member_removes_everything(self):
+        omar = self.s.add_member("Omar")
+        gloves = self.s.add_product("Gloves", 800, stock=5)
+        self.s.subscribe(self.ali, self.monthly, paid_now=100)
+        self.s.sell(gloves, 1, member_id=self.ali, paid_now=0)
+        self.s.subscribe(omar, self.monthly, paid_now=500)
+        self.s.delete_member(self.ali)
+        self.assertIsNone(self.s.get_member(self.ali))
+        self.assertEqual(self.s.member_history(self.ali), [])
+        self.assertEqual(self.s.list_sales(), [])
+        self.assertEqual(self.s.get_product(gloves)["stock"], 4)
+        self.assertEqual(self.s.total_debt(), 0)
+        self.assertEqual(self.s.income(TODAY, TODAY), 500)  # Omar's money stays
+
+
 class SubscriptionTests(StoreTestCase):
     def test_new_subscription_starts_today(self):
         self.s.subscribe(self.ali, self.monthly)

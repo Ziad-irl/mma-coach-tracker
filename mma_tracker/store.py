@@ -25,6 +25,18 @@ def money(value):
     return round(float(value or 0), 2)
 
 
+def member_status(end_date):
+    """("none", None), ("expired", days_ago), ("today", 0) or ("active", days_left)."""
+    if not end_date:
+        return "none", None
+    left = (parse_date(end_date) - today()).days
+    if left < 0:
+        return "expired", -left
+    if left == 0:
+        return "today", 0
+    return "active", left
+
+
 class ValidationError(ValueError):
     """Raised for bad user input; the message is an i18n key."""
 
@@ -83,6 +95,17 @@ class Store(object):
                 (1 if archived else 0, member_id),
             )
 
+    def delete_member(self, member_id):
+        """Permanently remove a member and everything linked to them:
+        subscriptions, charges, payments and their equipment sales.
+        Stock is not returned - the items really left the gym."""
+        with self.conn:
+            self.conn.execute("DELETE FROM subscriptions WHERE member_id = ?", (member_id,))
+            self.conn.execute("DELETE FROM sales WHERE member_id = ?", (member_id,))
+            self.conn.execute("DELETE FROM charges WHERE member_id = ?", (member_id,))
+            self.conn.execute("DELETE FROM payments WHERE member_id = ?", (member_id,))
+            self.conn.execute("DELETE FROM members WHERE id = ?", (member_id,))
+
     def get_member(self, member_id):
         return self.conn.execute(
             "SELECT * FROM members WHERE id = ?", (member_id,)
@@ -91,7 +114,7 @@ class Store(object):
     def list_members(self, search="", include_archived=False):
         """Members with their latest subscription end date and balance."""
         sql = """
-            SELECT m.id, m.name, m.phone, m.archived,
+            SELECT m.id, m.name, m.phone, m.notes, m.archived,
                    (SELECT MAX(end_date) FROM subscriptions s
                      WHERE s.member_id = m.id) AS end_date,
                    ROUND(
@@ -445,6 +468,24 @@ class Store(object):
         return self.conn.execute(sql, args).fetchall()
 
     # ----------------------------------------------------------------- reports
+
+    def all_subscriptions(self):
+        return self.conn.execute(
+            "SELECT s.*, m.name AS member_name FROM subscriptions s "
+            "JOIN members m ON m.id = s.member_id ORDER BY s.start_date DESC, s.id DESC"
+        ).fetchall()
+
+    def all_payments(self):
+        return self.conn.execute(
+            "SELECT p.*, m.name AS member_name FROM payments p "
+            "JOIN members m ON m.id = p.member_id ORDER BY p.on_date DESC, p.id DESC"
+        ).fetchall()
+
+    def all_charges(self):
+        return self.conn.execute(
+            "SELECT c.*, m.name AS member_name FROM charges c "
+            "JOIN members m ON m.id = c.member_id ORDER BY c.on_date DESC, c.id DESC"
+        ).fetchall()
 
     def income(self, start, end):
         """Cash actually received between two dates (inclusive)."""
