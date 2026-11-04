@@ -20,6 +20,15 @@ class DashboardTab(Tab):
 
     def build(self):
         bar = toolbar(self)
+        brand = self.app.brand
+        if brand.logo:
+            try:
+                self.logo = tk.PhotoImage(file=brand.logo)  # keep a reference
+                ttk.Label(bar, image=self.logo).pack(side=side_start(), padx=(0, 8))
+            except tk.TclError:
+                pass
+        if brand.name:
+            label(bar, brand.name, style="Big.TLabel").pack(side=side_start())
         button(bar, "refresh", self.refresh, side=side_end())
         button(bar, "export_excel", lambda: self.app.export_excel(self), side=side_end())
 

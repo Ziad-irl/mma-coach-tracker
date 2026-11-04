@@ -7,7 +7,7 @@ from tkinter import filedialog, messagebox
 from tkinter import font as tkfont
 from tkinter import ttk
 
-from .. import export, i18n
+from .. import brand, export, i18n
 from ..i18n import t
 from ..store import ValidationError
 from .widgets import confirm_danger, label, ordered, show_error, show_info
@@ -39,6 +39,13 @@ class App(object):
         self.member_windows = {}
         root.minsize(760, 520)
         root.geometry("1000x660")
+        self.brand = brand.load()
+        if self.brand.icon:
+            try:
+                # default= also applies the icon to every dialog and window.
+                root.iconbitmap(default=self.brand.icon)
+            except tk.TclError:
+                pass
         i18n.set_language(store.get_setting("language", "en"))
         self._bind_keys()
         self.build()
@@ -90,7 +97,8 @@ class App(object):
         for child in self.root.winfo_children():
             child.destroy()
         self.member_windows = {}
-        self.root.title(t("app_title"))
+        self.root.title("%s - %s" % (self.brand.name, t("app_title"))
+                        if self.brand.name else t("app_title"))
         self._setup_style()
 
         hint = label(self.root, t("hint_main"), style="Hint.TLabel", padding=(8, 0, 8, 4))
