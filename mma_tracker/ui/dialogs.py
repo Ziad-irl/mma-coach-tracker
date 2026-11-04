@@ -105,11 +105,10 @@ def sell_form(parent, store, member_id=None, product_id=None):
 
     def on_product(_event):
         d.set_raw("price", float(by_id[d.choice_value("product")]["price"]))
-        update_paid()
 
     d.widgets["product"].bind("<<ComboboxSelected>>", on_product)
-    d.widgets["qty"].bind("<KeyRelease>", update_paid)
-    d.widgets["price"].bind("<KeyRelease>", update_paid)
+    d.vars["qty"].trace_add("write", update_paid)
+    d.vars["price"].trace_add("write", update_paid)
     return d.show()
 
 
