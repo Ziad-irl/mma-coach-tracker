@@ -25,7 +25,15 @@ jobs:
           python -m pip install -r requirements-build.txt
           python -m PyInstaller --noconfirm --clean --onedir --windowed --name MMACoachTracker launcher.py
 
+      - name: Build Spider Team exe
+        run: python -m PyInstaller --noconfirm --clean --onedir --windowed --name SpiderTeam --icon brands/spider-team/icon.ico --add-data "brands/spider-team;brand" launcher.py
+
       - uses: actions/upload-artifact@v5
         with:
           name: MMACoachTracker-win32
           path: dist/MMACoachTracker
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: SpiderTeam-win32
+          path: dist/SpiderTeam
