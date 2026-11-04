@@ -25,18 +25,33 @@ class SettingsTab(Tab):
             ttk.Radiobutton(lang, text=name, value=code, variable=self.lang,
                             command=self.change_language).pack(side=side_start(), padx=6)
 
+        size = ttk.LabelFrame(top, text=t("text_size"), padding=8)
+        size.pack(side=side_start(), fill=tk.Y, padx=(0, 8))
+        self.text_size = tk.StringVar(self, value=self.store.get_setting("text_size", "normal"))
+        for code in ("normal", "large"):
+            ttk.Radiobutton(size, text=t("size_" + code), value=code, variable=self.text_size,
+                            command=self.change_text_size).pack(side=side_start(), padx=6)
+
         cur = ttk.LabelFrame(top, text=t("currency"), padding=8)
         cur.pack(side=side_start(), fill=tk.Y, padx=(0, 8))
         self.currency = tk.StringVar(self, value=self.app.currency)
         ttk.Entry(cur, textvariable=self.currency, width=8).pack(side=side_start(), padx=4)
         button(cur, "save", self.save_currency)
 
-        bk = ttk.LabelFrame(top, text=t("backup"), padding=8)
-        bk.pack(side=side_start(), fill=tk.BOTH, expand=True)
-        label(bk, t("auto_backup_info"), wraplength=320).pack(fill=tk.X)
+        data = ttk.Frame(self)
+        data.pack(fill=tk.X, pady=(8, 0))
+        bk = ttk.LabelFrame(data, text=t("backup"), padding=8)
+        bk.pack(side=side_start(), fill=tk.BOTH, expand=True, padx=(0, 8))
+        label(bk, t("auto_backup_info"), wraplength=380).pack(fill=tk.X)
         bar = toolbar(bk, pady=(6, 0))
         button(bar, "backup_now", self.backup_now)
         button(bar, "open_data_folder", self.open_data_folder)
+
+        ex = ttk.LabelFrame(data, text=t("export"), padding=8)
+        ex.pack(side=side_start(), fill=tk.BOTH, expand=True)
+        label(ex, t("export_info"), wraplength=380).pack(fill=tk.X)
+        bar = toolbar(ex, pady=(6, 0))
+        button(bar, "export_excel", lambda: self.app.export_excel(self))
 
         plans = ttk.LabelFrame(self, text=t("plans"), padding=6)
         plans.pack(fill=tk.BOTH, expand=True, pady=(8, 0))
@@ -65,6 +80,9 @@ class SettingsTab(Tab):
     def change_language(self):
         # Rebuilding destroys this tab, so defer until the click has finished.
         self.after_idle(self.app.set_language, self.lang.get())
+
+    def change_text_size(self):
+        self.after_idle(self.app.set_text_size, self.text_size.get())
 
     def save_currency(self):
         self.store.set_setting("currency", self.currency.get().strip())

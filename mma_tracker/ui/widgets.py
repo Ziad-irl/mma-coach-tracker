@@ -1,12 +1,12 @@
 """Small reusable Tk pieces that understand right-to-left layout."""
 
-import datetime
 import tkinter as tk
 from tkinter import messagebox, ttk
 
 from .. import i18n
+from ..export import status_text
 from ..i18n import t
-from ..store import ValidationError, money, parse_date
+from ..store import ValidationError, member_status, money, parse_date
 
 
 # ------------------------------------------------------------------ layout
@@ -65,12 +65,14 @@ def fmt_money(value, currency=None):
 
 def days_status(end_date):
     """(text, tag) for a subscription end date (str/date/None)."""
-    if not end_date:
-        return t("status_none"), "expired"
-    left = (parse_date(end_date) - datetime.date.today()).days
-    if left < 0:
-        return t("status_expired"), "expired"
-    return str(left), ("warn" if left <= 7 else "")
+    code, days = member_status(end_date)
+    if code in ("none", "expired"):
+        tag = "expired"
+    elif code == "today" or days <= 7:
+        tag = "warn"
+    else:
+        tag = "ok"
+    return status_text(end_date), tag
 
 
 # ---------------------------------------------------------------- dialogs
@@ -85,6 +87,11 @@ def show_info(parent, text):
 
 def confirm(parent, key):
     return messagebox.askyesno(t("confirm"), t(key), parent=parent)
+
+
+def confirm_danger(parent, text):
+    return messagebox.askyesno(t("confirm"), text, icon=messagebox.WARNING,
+                               default=messagebox.NO, parent=parent)
 
 
 def center(win, parent):
@@ -105,7 +112,7 @@ class Table(ttk.Frame):
     rows for set_rows(): [(iid, {key: value}, tag)].
     """
 
-    def __init__(self, parent, columns, height=10, on_open=None):
+    def __init__(self, parent, columns, height=10, on_open=None, on_menu=None):
         ttk.Frame.__init__(self, parent)
         cols = ordered(columns)
         self.keys = [c[0] for c in cols]  # display order, values follow it
@@ -118,29 +125,47 @@ class Table(ttk.Frame):
             anchor = "e" if kind == "num" else anchor_start()
             self.tree.heading(key, text=t(head), anchor=anchor)
             self.tree.column(key, width=width, minwidth=40, anchor=anchor)
+        self.tree.tag_configure("odd", background="#f2f5fa")
+        self.tree.tag_configure("ok", foreground="#1b7f3b")
         self.tree.tag_configure("expired", foreground="#b00020")
         self.tree.tag_configure("warn", foreground="#b36b00")
-        self.tree.tag_configure("muted", foreground="#777777")
+        self.tree.tag_configure("muted", foreground="#888888")
         sb.pack(side=side_end(), fill=tk.Y)
         self.tree.pack(side=side_start(), fill=tk.BOTH, expand=True)
         if on_open:
             self.tree.bind("<Double-1>", lambda e: self._open(on_open))
             self.tree.bind("<Return>", lambda e: self._open(on_open))
+        if on_menu:
+            self.tree.bind("<Button-3>", lambda e: self._menu(e, on_menu))
 
     def _open(self, callback):
         iid = self.selected()
         if iid is not None:
             callback(iid)
 
+    def _menu(self, event, callback):
+        iid = self.tree.identify_row(event.y)
+        if iid:
+            self.tree.selection_set(iid)
+            self.tree.focus(iid)
+            callback(iid, event)
+
     def set_rows(self, rows):
         selected = self.selected()
         self.tree.delete(*self.tree.get_children())
-        for iid, values, tag in rows:
+        for i, (iid, values, tag) in enumerate(rows):
+            tags = [tag] if tag else []
+            if i % 2:
+                tags.append("odd")
             self.tree.insert("", tk.END, iid=str(iid),
                              values=[values.get(k, "") for k in self.keys],
-                             tags=(tag,) if tag else ())
+                             tags=tags)
         if selected is not None and self.tree.exists(selected):
             self.tree.selection_set(selected)
+            self.tree.see(selected)
+
+    def count(self):
+        return len(self.tree.get_children())
 
     def selected(self):
         sel = self.tree.selection()
