@@ -10,9 +10,9 @@ jobs:
     # Same interpreter the coach's PC runs: 32-bit Python 3.8.
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.8"
           architecture: x86
@@ -25,7 +25,7 @@ jobs:
           python -m pip install -r requirements-build.txt
           python -m PyInstaller --noconfirm --clean --onedir --windowed --name MMACoachTracker launcher.py
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: MMACoachTracker-win32
           path: dist/MMACoachTracker
