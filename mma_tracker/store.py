@@ -456,6 +456,25 @@ class Store(object):
         ).fetchone()[0]
         return money(payments + walk_in)
 
+    def monthly_income(self, months=12):
+        """[(\"YYYY-MM\", amount), ...] newest first, months with no income skipped."""
+        t = today()
+        y, m = t.year, t.month - (months - 1)
+        while m <= 0:
+            m += 12
+            y -= 1
+        first = "%04d-%02d" % (y, m)
+        rows = self.conn.execute(
+            """SELECT ym, SUM(x) AS amount FROM (
+                 SELECT substr(on_date, 1, 7) AS ym, amount AS x FROM payments
+                 UNION ALL
+                 SELECT substr(on_date, 1, 7), total FROM sales WHERE member_id IS NULL)
+                WHERE ym >= ?
+                GROUP BY ym ORDER BY ym DESC""",
+            (first,),
+        ).fetchall()
+        return [(r["ym"], money(r["amount"])) for r in rows]
+
     def summary(self):
         t = today()
         month_start = t.replace(day=1)

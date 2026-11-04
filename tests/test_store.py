@@ -120,6 +120,13 @@ class DebtTests(StoreTestCase):
         types = sorted(r["type"] for r in self.s.member_history(self.ali))
         self.assertEqual(types, ["charge", "payment"])
 
+    def test_monthly_income(self):
+        self.s.add_payment(self.ali, 100, on_date="2026-03-01")
+        self.s.add_payment(self.ali, 50, on_date="2026-01-15")
+        self.s.add_payment(self.ali, 999, on_date="2025-01-15")  # too old
+        self.assertEqual(self.s.monthly_income(12),
+                         [("2026-03", 100), ("2026-01", 50)])
+
     def test_summary(self):
         self.s.add_member("Omar")
         self.s.subscribe(self.ali, self.monthly, paid_now=400)
