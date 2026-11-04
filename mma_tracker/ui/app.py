@@ -54,8 +54,10 @@ class App(object):
 
     def build(self):
         from .dashboard import DashboardTab
+        from .debts import DebtsTab
+        from .equipment import EquipmentTab
         from .members import MembersTab
-        tab_classes = [DashboardTab, MembersTab]
+        tab_classes = [DashboardTab, MembersTab, EquipmentTab, DebtsTab]
 
         for child in self.root.winfo_children():
             child.destroy()
