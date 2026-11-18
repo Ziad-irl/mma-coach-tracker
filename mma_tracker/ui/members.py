@@ -1,20 +1,36 @@
+import datetime
 import tkinter as tk
 from tkinter import ttk
 
-from ..i18n import t
+from ..i18n import bidi, t
 from ..store import member_status
 from . import dialogs
 from .app import Tab
-from .widgets import (Table, button, center, confirm, days_status, fmt_money,
-                      label, show_error, side_end, side_start, toolbar)
+from .visuals import Avatar, MonthCalendar
+from .widgets import (Table, button, center, confirm, days_status, fmt_last_visit,
+                      fmt_money, label, ordered, show_error, side_end, side_start,
+                      toolbar)
 
-FILTERS = ("all", "active", "expiring", "owing")
+FILTERS = ("all", "active", "expiring", "owing", "inactive")
+INACTIVE_DAYS = 14
+STAT_TILES = (
+    ("week", "stat_week"),
+    ("month", "stat_month"),
+    ("last_30", "stat_30"),
+    ("avg_week", "stat_avg"),
+    ("streak_weeks", "stat_streak"),
+    ("last_visit", "last_visit"),
+)
 
 
 def matches(status_filter, member):
     if status_filter == "owing":
         return member["balance"] > 0
     code, days = member_status(member["end_date"])
+    if status_filter == "inactive":
+        cutoff = (datetime.date.today() - datetime.timedelta(days=INACTIVE_DAYS)).isoformat()
+        return code in ("active", "today") and (
+            not member["last_visit"] or member["last_visit"] <= cutoff)
     if status_filter == "active":
         return code in ("active", "today")
     if status_filter == "expiring":
@@ -50,11 +66,13 @@ class MembersTab(Tab):
                    command=lambda: self.on_selected(self.delete)).pack(side=side_end(), padx=2)
 
         self.table = Table(self, [
-            ("name", "name", 220, "text"),
-            ("phone", "phone", 120, "text"),
-            ("end", "end_date", 95, "text"),
-            ("status", "status", 190, "text"),
-            ("balance", "balance", 95, "num"),
+            ("name", "name", 190, "text"),
+            ("phone", "phone", 110, "text"),
+            ("end", "end_date", 90, "text"),
+            ("status", "status", 170, "text"),
+            ("visits", "visits_30", 100, "num"),
+            ("last", "last_visit", 95, "text"),
+            ("balance", "balance", 80, "num"),
         ], height=18, on_open=lambda iid: self.app.open_member(int(iid)),
             on_menu=self.show_menu)
         self.table.pack(fill=tk.BOTH, expand=True)
@@ -89,6 +107,7 @@ class MembersTab(Tab):
             rows.append((m["id"], {
                 "name": m["name"], "phone": m["phone"],
                 "end": m["end_date"] or "", "status": text,
+                "visits": m["visits_30"] or "", "last": fmt_last_visit(m["last_visit"]),
                 "balance": fmt_money(m["balance"]) if m["balance"] else "",
             }, tag))
         self.table.set_rows(rows)
@@ -106,6 +125,7 @@ class MembersTab(Tab):
         member = self.store.get_member(member_id)
         menu = tk.Menu(self, tearoff=0)
         menu.add_command(label=t("open"), command=lambda: self.app.open_member(member_id))
+        menu.add_command(label=t("check_in_today"), command=lambda: self.check_in(member_id))
         menu.add_separator()
         menu.add_command(label=t("new_subscription"), command=lambda: self.subscribe(member_id))
         menu.add_command(label=t("record_payment"), command=lambda: self.pay(member_id))
@@ -136,6 +156,10 @@ class MembersTab(Tab):
     def subscribe(self, member_id):
         self.app.run(self, dialogs.subscribe_form, self, self.store, member_id)
 
+    def check_in(self, member_id):
+        self.app.show_check_in()
+        self.app.tab_of("AttendanceTab").check_in(member_id)
+
     def pay(self, member_id):
         self.app.run(self, dialogs.payment_form, self, self.store, member_id)
 
@@ -158,8 +182,8 @@ class MemberWindow(tk.Toplevel):
         self.app = app
         self.store = app.store
         self.member_id = member_id
-        self.geometry("860x600")
-        self.minsize(660, 480)
+        self.geometry("900x660")
+        self.minsize(700, 520)
         self.protocol("WM_DELETE_WINDOW", self.close)
         self.bind("<Escape>", lambda e: self.close())
         self.bind("<F5>", lambda e: self.refresh())
@@ -169,6 +193,8 @@ class MemberWindow(tk.Toplevel):
 
         head = ttk.Frame(body)
         head.pack(fill=tk.X)
+        self.avatar = Avatar(head, size=60)
+        self.avatar.pack(side=side_start(), padx=(0, 10))
         info = ttk.Frame(head)
         info.pack(side=side_start(), fill=tk.X, expand=True)
         self.name_label = label(info, "", style="Big.TLabel")
@@ -177,33 +203,61 @@ class MemberWindow(tk.Toplevel):
         self.status_label.pack(fill=tk.X)
         self.info_label = label(info, "")
         self.info_label.pack(fill=tk.X)
-        self.balance_label = ttk.Label(head, text="", style="Big.TLabel")
-        self.balance_label.pack(side=side_end(), padx=6)
+        # Balance with the less frequent actions under it, so the main
+        # toolbar fits on a 1024-pixel-wide screen.
+        side_box = ttk.Frame(head)
+        side_box.pack(side=side_end(), padx=6, before=info)
+        self.balance_label = ttk.Label(side_box, text="", style="Big.TLabel", anchor="e")
+        self.balance_label.pack(fill=tk.X)
+        manage = ttk.Frame(side_box)
+        manage.pack(fill=tk.X, pady=(4, 0))
+        ttk.Button(manage, text=t("delete_member"), style="Danger.TButton",
+                   command=self.delete).pack(side=side_end(), padx=2)
+        self.archive_btn = button(manage, "archive", self.toggle_archive, side=side_end())
+        button(manage, "edit", self.edit, side=side_end())
 
         bar = toolbar(body, pady=8)
+        button(bar, "check_in_today", self.check_in)
         button(bar, "new_subscription", self.subscribe)
         button(bar, "record_payment", self.pay)
         button(bar, "add_debt", self.add_debt)
         button(bar, "sell", self.sell)
-        button(bar, "edit", self.edit)
-        ttk.Button(bar, text=t("delete_member"), style="Danger.TButton",
-                   command=self.delete).pack(side=side_end(), padx=2)
-        self.archive_btn = button(bar, "archive", self.toggle_archive, side=side_end())
 
-        subs = ttk.LabelFrame(body, text=t("subscriptions"), padding=6)
-        subs.pack(fill=tk.BOTH, expand=False)
+        stats = ttk.Frame(body)
+        stats.pack(fill=tk.X, pady=(0, 8))
+        self.stat_labels = {}
+        for col, (key, title) in enumerate(ordered(STAT_TILES)):
+            box = ttk.LabelFrame(stats, text=t(title), padding=(6, 2))
+            box.grid(row=0, column=col, sticky="nsew", padx=2)
+            stats.columnconfigure(col, weight=1)
+            value = ttk.Label(box, text="-", style="Title.TLabel", anchor="center")
+            value.pack(fill=tk.X)
+            self.stat_labels[key] = value
+
+        tabs = ttk.Notebook(body)
+        tabs.pack(fill=tk.BOTH, expand=True)
+        att = ttk.Frame(tabs, padding=8)
+        self.calendar = MonthCalendar(att, on_click=self.toggle_day,
+                                      on_month=self.refresh_calendar)
+        self.calendar.pack()
+        label(att, t("calendar_hint"), style="Hint.TLabel", wraplength=640).pack(pady=(6, 0))
+        subs = ttk.Frame(tabs, padding=6)
+        hist = ttk.Frame(tabs, padding=6)
+        pages = [(att, "tab_attendance"), (subs, "subscriptions"), (hist, "history")]
+        for page, key in ordered(pages):
+            tabs.add(page, text="  %s  " % t(key))
+        tabs.select(att)
+
         self.subs = Table(subs, [
             ("plan", "plan", 200, "text"),
             ("start", "start", 100, "text"),
             ("end", "end_date", 100, "text"),
             ("price", "price", 90, "num"),
-        ], height=5)
+        ], height=8)
         self.subs.pack(fill=tk.BOTH, expand=True)
         sbar = toolbar(subs, pady=(4, 0))
         button(sbar, "delete", self.delete_subscription, side=side_end())
 
-        hist = ttk.LabelFrame(body, text=t("history"), padding=6)
-        hist.pack(fill=tk.BOTH, expand=True, pady=(8, 0))
         self.hist = Table(hist, [
             ("date", "date", 100, "text"),
             ("type", "type", 90, "text"),
@@ -229,16 +283,17 @@ class MemberWindow(tk.Toplevel):
             return
         self.member = m
         self.title(m["name"])
+        self.avatar.show(m["name"])
         self.name_label.configure(text=m["name"])
         end = self.store.member_end_date(self.member_id)
         status, tag = days_status(end)
         colours = {"ok": "#1b7f3b", "warn": "#b36b00", "expired": "#b00020"}
         self.status_label.configure(text=status, foreground=colours.get(tag, ""))
         parts = [m["phone"], "%s: %s" % (t("end_date"), end or "-"), m["notes"]]
-        self.info_label.configure(text="   |   ".join(p for p in parts if p))
+        self.info_label.configure(text=bidi("   |   ".join(p for p in parts if p)))
         balance = self.store.member_balance(self.member_id)
         self.balance_label.configure(
-            text="%s: %s" % (t("balance"), fmt_money(balance, self.app.currency)),
+            text=bidi("%s: %s" % (t("balance"), fmt_money(balance, self.app.currency))),
             style="BigDebt.TLabel" if balance > 0 else "Big.TLabel")
         self.archive_btn.configure(text=t("unarchive" if m["archived"] else "archive"))
 
@@ -258,7 +313,30 @@ class MemberWindow(tk.Toplevel):
             }, "expired" if is_charge else "ok"))
         self.hist.set_rows(rows)
 
+        stats = self.store.attendance_stats(self.member_id)
+        for key, _title in STAT_TILES:
+            value = stats[key]
+            if key == "last_visit":
+                value = fmt_last_visit(value)
+            elif key == "streak_weeks":
+                value = "%d" % value
+            self.stat_labels[key].configure(text=str(value))
+        self.refresh_calendar()
+
+    def refresh_calendar(self):
+        first, last = self.calendar.month_range()
+        self.calendar.show(self.store.attendance_dates(self.member_id, first, last),
+                           self.store.subscription_days(self.member_id, first, last))
+
     # actions ---------------------------------------------------------------
+
+    def check_in(self):
+        self.app.show_check_in()
+        self.app.tab_of("AttendanceTab").check_in(self.member_id)
+
+    def toggle_day(self, date):
+        self.store.toggle_check_in(self.member_id, date)
+        self.app.data_changed()
 
     def subscribe(self):
         self.app.run(self, dialogs.subscribe_form, self, self.store, self.member_id)
