@@ -5,6 +5,7 @@ A small, fast desktop app for an MMA coach to keep track of:
 - **Member subscriptions**: monthly or custom plans, with expiry dates and renewals
 - **Equipment sales**: gloves, shin guards, rash guards, and so on, with stock
 - **Debts**: what each player still owes, and every payment they make
+- **Attendance**: who trained today, how often each player comes, and who stopped coming
 
 It is built for **old hardware**: a 32-bit PC running Windows 7. It opens in
 about a second and uses about 25 MB of RAM. The interface works in **English
@@ -14,13 +15,15 @@ and Arabic** (right-to-left), and you can switch between them in Settings.
 
 | Tab | What it does |
 |---|---|
-| Dashboard | Active and unsubscribed member counts, total debt, income today and this month, members expired or ending within 7 days, income by month. Click a card to jump to that list |
-| Members | Search by name or phone, filter by All / Active / Ending soon / Owes money. Add, archive or delete members. Double-click a member to open their account: new subscription, record payment, add a manual debt, sell equipment, full account history. Right-click for quick actions |
+| Dashboard | Check-ins today, active and unsubscribed counts, total debt, income today and this month. Charts of check-ins over the last 30 days and income over 12 months. Lists of members expired or ending within 7 days, and subscribed members who haven't trained in 14+ days. Click a card to jump to that list |
+| Attendance | Front-desk check-in: type part of a name or phone and press Enter. A coloured banner confirms it with this month's and this week's visit count, and warns in orange or red if the subscription is ending or expired or the player owes money. Shows today's check-ins (with undo) and this month's top attendees |
+| Members | Search by name or phone, filter by All / Active / Ending soon / Owes money / Not training. Shows visits in the last 30 days and last visit. Add, archive or delete members. Double-click a member to open their account. Right-click for quick actions |
+| Member window | Coloured initials, status and balance. Attendance stats: last 7 days, this month, last 30 days, average per week, weekly streak, last visit. A month calendar (green = trained, blue = subscribed) where clicking a day adds or removes a visit. Subscriptions and account history tabs |
 | Equipment | Products with price and stock. Sell to a walk-in customer for cash, or to a member on credit. Undo a sale |
 | Debts | Everyone who owes money, sorted by amount. Record a payment in one click |
 | Settings | Language, text size, currency, subscription plans, backups, Excel export |
 
-**Keyboard shortcuts:** `F5` refresh, `Ctrl+F` search members, `Ctrl+N` new member,
+**Keyboard shortcuts:** `F2` check in, `F5` refresh, `Ctrl+F` search members, `Ctrl+N` new member,
 `Delete` delete the selected member, `Enter` open the selected row, `Esc` close a window.
 
 ### Archive or delete?
@@ -31,11 +34,19 @@ and Arabic** (right-to-left), and you can switch between them in Settings.
   payments and purchases. Their payments also disappear from income reports.
   Use it for mistakes or duplicates.
 
+### Attendance
+
+One visit is counted per player per day. Checking in twice the same day
+just says they are already in. "Last 7 days" includes today, and the weekly
+streak counts back-to-back 7-day periods with at least one visit. The calendar
+week starts on Saturday. Late entries and corrections are made by clicking
+days in the member's calendar.
+
 ### Excel export
 
 **Dashboard → Export to Excel** (or Settings) saves one `.xlsx` workbook.
 It has a sheet each for members, debts, subscriptions, payments, charges,
-sales, products and monthly income. Headers use the current language, and
+sales, products, monthly income and attendance. Headers use the current language, and
 Arabic exports open right-to-left. It opens in Excel 2007 or newer and in
 LibreOffice, and needs nothing extra installed.
 
@@ -139,7 +150,8 @@ mma_tracker/
   backup.py     daily and manual backups
   xlsx.py       tiny stdlib-only .xlsx writer
   export.py     what goes into the Excel export
-  i18n.py       English / Arabic strings
-  ui/           Tkinter screens
+  i18n.py       English / Arabic strings (+ right-to-left fix for Tk)
+  ui/           Tkinter screens; ui/visuals.py has the canvas charts,
+                calendar, avatar and banner
 tests/          unittest suite
 ```
