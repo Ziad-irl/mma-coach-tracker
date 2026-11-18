@@ -1,11 +1,12 @@
 """Small reusable Tk pieces that understand right-to-left layout."""
 
+import datetime
 import tkinter as tk
 from tkinter import messagebox, ttk
 
 from .. import i18n
 from ..export import status_text
-from ..i18n import t
+from ..i18n import bidi, t
 from ..store import ValidationError, member_status, money, parse_date
 
 
@@ -63,6 +64,18 @@ def fmt_money(value, currency=None):
     return "%s %s" % (s, currency) if currency else s
 
 
+def fmt_last_visit(iso_date):
+    """'Today', 'Yesterday', '5 days ago' or 'Never'."""
+    if not iso_date:
+        return t("never")
+    days = (datetime.date.today() - parse_date(iso_date)).days
+    if days <= 0:
+        return t("today_word")
+    if days == 1:
+        return t("yesterday")
+    return t("days_ago") % days
+
+
 def days_status(end_date):
     """(text, tag) for a subscription end date (str/date/None)."""
     code, days = member_status(end_date)
@@ -72,7 +85,7 @@ def days_status(end_date):
         tag = "warn"
     else:
         tag = "ok"
-    return status_text(end_date), tag
+    return bidi(status_text(end_date)), tag
 
 
 # ---------------------------------------------------------------- dialogs
