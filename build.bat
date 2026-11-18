@@ -20,8 +20,14 @@ set BRAND_ARGS=--icon "brands\%~1\icon.ico" --add-data "brands\%~1;brand"
 %PYTHON% -m pip install -r requirements-build.txt || goto :error
 %PYTHON% -m unittest discover -s tests -t . || goto :error
 %PYTHON% -m PyInstaller --noconfirm --clean --onedir --windowed --name %NAME% %BRAND_ARGS% launcher.py || goto :error
+REM Double-click launcher for demo mode (sample data, real data untouched).
+(
+    echo @echo off
+    echo start "" "%%~dp0%NAME%.exe" --demo
+) > "dist\%NAME%\%NAME% Demo.bat"
 echo.
 echo Done: dist\%NAME%\%NAME%.exe
+echo Demo: dist\%NAME%\%NAME% Demo.bat
 goto :eof
 
 :error

@@ -84,6 +84,22 @@ If Windows 7 says a DLL is missing, install **Windows 7 SP1** and update
 2. Copy this repository to the PC.
 3. Double-click `run.bat`.
 
+## Demo mode (try it with sample data)
+
+Double-click **`<App> Demo.bat`** next to the exe (for example `SpiderTeam Demo.bat`).
+From source, use `run_demo.bat` or `python -m mma_tracker --demo`.
+
+- It opens a separate database, `data\demo.db`. The real `data\tracker.db` is
+  never opened, and no backups are made.
+- It comes with 32 sample players (English and Arabic names) in every
+  situation: training regularly, ending this week, just expired, paid but
+  stopped coming, left months ago, and never subscribed. There are also
+  12 months of payments, equipment sales (one item out of stock) and debts.
+- Dates are generated relative to today, so the demo always looks current.
+- An orange strip and `[DEMO]` in the title make it obvious which one is open.
+- **Settings → Reset demo data** throws away your changes and recreates the
+  sample data with fresh dates.
+
 ## Branded builds (one per gym)
 
 A brand gives the app a gym's own name, window icon, exe icon and a logo on

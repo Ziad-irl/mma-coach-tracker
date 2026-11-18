@@ -28,6 +28,12 @@ jobs:
       - name: Build Spider Team exe
         run: python -m PyInstaller --noconfirm --clean --onedir --windowed --name SpiderTeam --icon brands/spider-team/icon.ico --add-data "brands/spider-team;brand" launcher.py
 
+      - name: Add demo launchers
+        run: |
+          foreach ($n in "MMACoachTracker", "SpiderTeam") {
+            Set-Content -Encoding ascii "dist/$n/$n Demo.bat" "@echo off`r`nstart `"`" `"%~dp0$n.exe`" --demo"
+          }
+
       - uses: actions/upload-artifact@v5
         with:
           name: MMACoachTracker-win32
