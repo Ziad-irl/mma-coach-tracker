@@ -2,9 +2,14 @@
 Headers and status words follow the current UI language."""
 
 from . import i18n
-from .i18n import t
+from .i18n import plain
+from .i18n import t as ui_t
 from .store import member_status
 from .xlsx import write_xlsx
+
+
+def t(key):
+    return plain(ui_t(key))
 
 
 def status_text(end_date):
@@ -20,12 +25,13 @@ def status_text(end_date):
 
 def _members_sheet(store):
     rows = [(m["name"], m["phone"], m["notes"], m["end_date"] or "",
-             status_text(m["end_date"]), m["balance"],
-             t("yes") if m["archived"] else t("no"))
+             status_text(m["end_date"]), m["visits_30"], m["last_visit"] or "",
+             m["balance"], t("yes") if m["archived"] else t("no"))
             for m in store.list_members(include_archived=True)]
     return (t("tab_members"), [
         (t("name"), "text", 24), (t("phone"), "text", 15), (t("notes"), "text", 24),
         (t("end_date"), "text", 12), (t("status"), "text", 22),
+        (t("visits_30"), "int", 14), (t("last_visit"), "text", 12),
         (t("balance"), "money", 12), (t("archived"), "text", 10),
     ], rows)
 
@@ -65,6 +71,10 @@ def build_sheets(store):
         (t("monthly_income"), [
             (t("month"), "text", 12), (t("amount"), "money", 14),
         ], store.monthly_income(120)),
+        (t("tab_attendance"), [
+            (t("date"), "text", 12), (t("time"), "text", 8), (t("member"), "text", 24),
+        ], [(a["on_date"], a["checked_at"], a["member_name"])
+            for a in store.all_attendance()]),
     ]
 
 

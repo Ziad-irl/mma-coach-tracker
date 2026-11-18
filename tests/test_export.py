@@ -73,6 +73,7 @@ class ExportTests(unittest.TestCase):
         self.s.subscribe(ali, plan, paid_now=200)
         gloves = self.s.add_product("Gloves", 800, 3)
         self.s.sell(gloves, 1)
+        self.s.check_in(ali)
 
     def tearDown(self):
         i18n.set_language("en")
@@ -85,6 +86,9 @@ class ExportTests(unittest.TestCase):
         self.assertIn("Active - 29 days left", members[1])
         self.assertEqual(read_sheet(path, 2)[1], ["Ali", "0100", "300.0"])
         self.assertEqual(read_sheet(path, 6)[1][-1], "(Walk-in customer, cash)")
+        attendance = read_sheet(path, 9)
+        self.assertEqual(attendance[0], ["Date", "Time", "Member"])
+        self.assertEqual(attendance[1][::2], ["2026-03-10", "Ali"])
 
     def test_arabic_headers(self):
         i18n.set_language("ar")
