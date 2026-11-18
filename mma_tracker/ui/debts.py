@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from ..i18n import t
+from ..i18n import bidi, t
 from . import dialogs
 from .app import Tab
 from .widgets import Table, button, fmt_money, label, side_end, side_start, toolbar
@@ -29,8 +29,8 @@ class DebtsTab(Tab):
                        "balance": fmt_money(r["balance"])}, "expired")
             for r in rows)
         total = sum(r["balance"] for r in rows)
-        self.total.configure(text="%s: %s   (%d)" % (
-            t("total_debt"), fmt_money(total, self.app.currency), len(rows)))
+        self.total.configure(text=bidi("%s: %s   (%d)" % (
+            t("total_debt"), fmt_money(total, self.app.currency), len(rows))))
 
     def pay(self):
         iid = self.table.require_selected()

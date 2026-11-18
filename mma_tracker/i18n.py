@@ -144,8 +144,43 @@ STRINGS = {
         "text_size": "Text size",
         "size_normal": "Normal",
         "size_large": "Large",
-        "hint_main": "Double-click a row to open it   |   Right-click a member for quick actions   |   F5 refresh   |   Ctrl+F search   |   Ctrl+N new member",
-        "go_to_list": "Click to see the list",
+        "hint_main": "Double-click a row to open it   |   Right-click a member for quick actions   |   F5 refresh   |   Ctrl+F search   |   Ctrl+N new member   |   F2 check-in",
+        "go_to_list": "Open list",
+        # attendance
+        "tab_attendance": "Attendance",
+        "check_in": "Check in",
+        "check_in_today": "Check in today",
+        "checkin_prompt": "Type a name or phone and press Enter. Double-click a name to check them in.",
+        "checked_in_today": "Checked in today",
+        "checked_in_ok": "%s checked in",
+        "checkin_counts": "Visit %d this month   |   %d in the last 7 days",
+        "already_checked_in": "%s is already checked in today",
+        "warn_subscription": "Subscription: %s",
+        "warn_owes": "Owes %s",
+        "undo_check_in": "Undo check-in",
+        "time": "Time",
+        "top_this_month": "Top attendance this month",
+        "visits": "Visits",
+        "visits_30": "Visits (30 days)",
+        "last_visit": "Last visit",
+        "never": "Never",
+        "today_word": "Today",
+        "yesterday": "Yesterday",
+        "days_ago": "%d days ago",
+        "inactive_title": "Subscribed but not training for 14+ days",
+        "attendance_chart": "Check-ins, last 30 days",
+        "income_chart": "Income, last 12 months",
+        "stat_week": "Last 7 days",
+        "stat_month": "This month",
+        "stat_30": "Last 30 days",
+        "stat_avg": "Avg per week",
+        "stat_streak": "Weekly streak",
+        "stat_total": "All visits",
+        "calendar_hint": "Click a day to add or remove a visit.   Green = trained   Blue = subscribed   Red border = today",
+        "month_names": "January,February,March,April,May,June,July,August,September,October,November,December",
+        "weekday_names": "Sat,Sun,Mon,Tue,Wed,Thu,Fri",
+        "filter_inactive": "Not training (14+ days)",
+        "ready": "Ready for the next player",
         "open_file_now": "Open it now?",
         "export": "Export",
     },
@@ -279,8 +314,42 @@ STRINGS = {
         "text_size": "حجم الخط",
         "size_normal": "عادي",
         "size_large": "كبير",
-        "hint_main": "اضغط مرتين على الصف لفتحه   |   الزر الأيمن على اللاعب لإجراءات سريعة   |   F5 تحديث   |   Ctrl+F بحث   |   Ctrl+N لاعب جديد",
-        "go_to_list": "اضغط لعرض القائمة",
+        "hint_main": "اضغط مرتين على الصف لفتحه   |   الزر الأيمن على اللاعب لإجراءات سريعة   |   F5 تحديث   |   Ctrl+F بحث   |   Ctrl+N لاعب جديد   |   F2 تسجيل حضور",
+        "go_to_list": "عرض القائمة",
+        "tab_attendance": "الحضور",
+        "check_in": "تسجيل حضور",
+        "check_in_today": "تسجيل حضور اليوم",
+        "checkin_prompt": "اكتب الاسم أو الهاتف واضغط Enter. أو اضغط مرتين على الاسم لتسجيل حضوره",
+        "checked_in_today": "حضور اليوم",
+        "checked_in_ok": "تم تسجيل حضور %s",
+        "checkin_counts": "الزيارة رقم %d هذا الشهر   |   %d في آخر ٧ أيام",
+        "already_checked_in": "%s مسجل حضوره اليوم بالفعل",
+        "warn_subscription": "الاشتراك: %s",
+        "warn_owes": "عليه %s",
+        "undo_check_in": "إلغاء الحضور",
+        "time": "الوقت",
+        "top_this_month": "الأكثر حضوراً هذا الشهر",
+        "visits": "مرات الحضور",
+        "visits_30": "الحضور (٣٠ يوم)",
+        "last_visit": "آخر حضور",
+        "never": "لم يحضر",
+        "today_word": "اليوم",
+        "yesterday": "أمس",
+        "days_ago": "منذ %d يوم",
+        "inactive_title": "مشترك ولم يتمرن منذ ١٤ يوم أو أكثر",
+        "attendance_chart": "الحضور خلال آخر ٣٠ يوم",
+        "income_chart": "الدخل خلال آخر ١٢ شهر",
+        "stat_week": "آخر ٧ أيام",
+        "stat_month": "هذا الشهر",
+        "stat_30": "آخر ٣٠ يوم",
+        "stat_avg": "المتوسط أسبوعياً",
+        "stat_streak": "أسابيع متتالية",
+        "stat_total": "كل مرات الحضور",
+        "calendar_hint": "اضغط على أي يوم لإضافة أو إلغاء الحضور   |   الأخضر = حضر   |   الأزرق = مشترك   |   الإطار الأحمر = اليوم",
+        "month_names": "يناير,فبراير,مارس,أبريل,مايو,يونيو,يوليو,أغسطس,سبتمبر,أكتوبر,نوفمبر,ديسمبر",
+        "weekday_names": "سبت,أحد,اثنين,ثلاثاء,أربعاء,خميس,جمعة",
+        "filter_inactive": "منقطع عن التمرين (١٤+ يوم)",
+        "ready": "جاهز للاعب التالي",
         "open_file_now": "فتح الملف الآن؟",
         "export": "تصدير",
     },
@@ -304,5 +373,26 @@ def is_rtl():
     return _lang == "ar"
 
 
+# Tk on Windows lays out every label left-to-right, which scrambles Arabic
+# text that contains Latin words or numbers ("Enter", "F5", "300 EGP").
+# Wrapping it in a right-to-left embedding fixes the order.
+RLE, PDF = u"‫", u"‬"
+
+
+def bidi(text):
+    """Mark text as right-to-left when the UI is Arabic."""
+    return RLE + text + PDF if _lang == "ar" and text else text
+
+
+def plain(text):
+    """Remove the embedding marks (for Excel and other non-UI output)."""
+    return text.replace(RLE, "").replace(PDF, "")
+
+
 def t(key):
-    return STRINGS[_lang].get(key) or STRINGS["en"].get(key, key)
+    return bidi(STRINGS[_lang].get(key) or STRINGS["en"].get(key, key))
+
+
+def t_list(key):
+    """A comma-separated string as a list, e.g. month names."""
+    return plain(t(key)).split(",")

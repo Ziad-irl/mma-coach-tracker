@@ -15,7 +15,8 @@ class I18nTests(unittest.TestCase):
     def test_switch_and_fallback(self):
         i18n.set_language("ar")
         self.assertTrue(i18n.is_rtl())
-        self.assertEqual(i18n.t("no_such_key"), "no_such_key")
+        self.assertEqual(i18n.plain(i18n.t("no_such_key")), "no_such_key")
+        self.assertTrue(i18n.t("name").startswith(i18n.RLE))
         i18n.set_language("xx")
         self.assertEqual(i18n.language(), "en")
 

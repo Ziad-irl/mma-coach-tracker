@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import filedialog, ttk
 
 from .. import __version__, backup, i18n
-from ..i18n import t
+from ..i18n import bidi, t
 from . import dialogs
 from .app import Tab
 from .widgets import (Table, button, confirm, fmt_money, label, show_info,
@@ -66,7 +66,7 @@ class SettingsTab(Tab):
         ], height=8, on_open=lambda iid: self.edit_plan())
         self.plans.pack(fill=tk.BOTH, expand=True)
 
-        label(self, "%s %s   |   %s" % (t("version"), __version__, self.store.path),
+        label(self, bidi("%s %s   |   %s" % (t("version"), __version__, self.store.path)),
               style="TLabel").pack(fill=tk.X, pady=(6, 0))
 
     def refresh(self):
