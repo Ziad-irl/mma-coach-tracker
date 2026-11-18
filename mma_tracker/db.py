@@ -9,7 +9,7 @@ import os
 import sqlite3
 import sys
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS settings (
@@ -91,6 +91,19 @@ CREATE INDEX IF NOT EXISTS ix_subs_member_end ON subscriptions(member_id, end_da
 CREATE INDEX IF NOT EXISTS ix_sales_date      ON sales(on_date);
 """
 
+# Version 2: attendance. One row per member per day they trained.
+SCHEMA_V2 = """
+CREATE TABLE IF NOT EXISTS attendance (
+    id         INTEGER PRIMARY KEY,
+    member_id  INTEGER NOT NULL REFERENCES members(id),
+    on_date    TEXT    NOT NULL,
+    checked_at TEXT    NOT NULL DEFAULT '',
+    UNIQUE (member_id, on_date)
+);
+
+CREATE INDEX IF NOT EXISTS ix_attendance_date ON attendance(on_date);
+"""
+
 DEFAULT_SETTINGS = {
     "language": "en",
     "currency": "EGP",
@@ -137,4 +150,8 @@ def _migrate(conn):
                 "INSERT INTO plans(name, days, price) VALUES (?, ?, ?)",
                 ("Monthly", 30, 0),
             )
-            conn.execute("PRAGMA user_version = %d" % SCHEMA_VERSION)
+            conn.execute("PRAGMA user_version = 1")
+    if version < 2:
+        with conn:
+            conn.executescript(SCHEMA_V2)
+            conn.execute("PRAGMA user_version = 2")

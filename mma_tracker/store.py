@@ -15,6 +15,10 @@ def today():
     return datetime.date.today()
 
 
+def now():
+    return datetime.datetime.now()
+
+
 def parse_date(value):
     if isinstance(value, datetime.date):
         return value
@@ -104,6 +108,7 @@ class Store(object):
             self.conn.execute("DELETE FROM sales WHERE member_id = ?", (member_id,))
             self.conn.execute("DELETE FROM charges WHERE member_id = ?", (member_id,))
             self.conn.execute("DELETE FROM payments WHERE member_id = ?", (member_id,))
+            self.conn.execute("DELETE FROM attendance WHERE member_id = ?", (member_id,))
             self.conn.execute("DELETE FROM members WHERE id = ?", (member_id,))
 
     def get_member(self, member_id):
@@ -112,9 +117,14 @@ class Store(object):
         ).fetchone()
 
     def list_members(self, search="", include_archived=False):
-        """Members with their latest subscription end date and balance."""
+        """Members with their latest subscription end date, balance,
+        visits in the last 30 days and last visit date."""
         sql = """
             SELECT m.id, m.name, m.phone, m.notes, m.archived,
+                   (SELECT COUNT(*) FROM attendance a
+                     WHERE a.member_id = m.id AND a.on_date > ?) AS visits_30,
+                   (SELECT MAX(on_date) FROM attendance a
+                     WHERE a.member_id = m.id) AS last_visit,
                    (SELECT MAX(end_date) FROM subscriptions s
                      WHERE s.member_id = m.id) AS end_date,
                    ROUND(
@@ -125,7 +135,7 @@ class Store(object):
               FROM members m
              WHERE 1 = 1
         """
-        args = []
+        args = [(today() - datetime.timedelta(days=30)).isoformat()]
         if not include_archived:
             sql += " AND m.archived = 0"
         search = (search or "").strip()
@@ -542,4 +552,145 @@ class Store(object):
             "total_debt": self.total_debt(),
             "income_today": self.income(t, t),
             "income_month": self.income(month_start, t),
+            "checked_in_today": self.conn.execute(
+                "SELECT COUNT(*) FROM attendance WHERE on_date = ?", (t.isoformat(),)
+            ).fetchone()[0],
         }
+
+    # -------------------------------------------------------------- attendance
+
+    def check_in(self, member_id, on_date=None):
+        """Record that a member trained on a day. Returns False if they were
+        already checked in that day (one visit per day is counted)."""
+        on_date = parse_date(on_date or today())
+        checked_at = now().strftime("%H:%M") if on_date == today() else ""
+        with self.conn:
+            cur = self.conn.execute(
+                "INSERT OR IGNORE INTO attendance(member_id, on_date, checked_at) "
+                "VALUES (?, ?, ?)",
+                (member_id, on_date.isoformat(), checked_at),
+            )
+        return cur.rowcount == 1
+
+    def remove_check_in(self, member_id, on_date):
+        with self.conn:
+            self.conn.execute(
+                "DELETE FROM attendance WHERE member_id = ? AND on_date = ?",
+                (member_id, parse_date(on_date).isoformat()),
+            )
+
+    def toggle_check_in(self, member_id, on_date):
+        """Calendar click: add the visit, or remove it if it was there."""
+        if not self.check_in(member_id, on_date):
+            self.remove_check_in(member_id, on_date)
+            return False
+        return True
+
+    def attendance_dates(self, member_id, start=None, end=None):
+        sql = "SELECT on_date FROM attendance WHERE member_id = ?"
+        args = [member_id]
+        if start:
+            sql += " AND on_date >= ?"
+            args.append(parse_date(start).isoformat())
+        if end:
+            sql += " AND on_date <= ?"
+            args.append(parse_date(end).isoformat())
+        return [r[0] for r in self.conn.execute(sql + " ORDER BY on_date", args)]
+
+    def attendance_stats(self, member_id):
+        """Insights for one member. 'week' is the last 7 days including today;
+        'streak_weeks' counts back-to-back 7-day periods with a visit."""
+        t = today()
+        dates = [parse_date(d) for d in self.attendance_dates(member_id, end=t)]
+
+        def since(days):
+            first = t - datetime.timedelta(days=days - 1)
+            return sum(1 for d in dates if d >= first)
+
+        streak = 0
+        while True:
+            end = t - datetime.timedelta(days=7 * streak)
+            start = end - datetime.timedelta(days=6)
+            if not any(start <= d <= end for d in dates):
+                break
+            streak += 1
+        return {
+            "week": since(7),
+            "month": sum(1 for d in dates if (d.year, d.month) == (t.year, t.month)),
+            "last_30": since(30),
+            "avg_week": round(since(28) / 4.0, 1),
+            "total": len(dates),
+            "last_visit": dates[-1].isoformat() if dates else None,
+            "streak_weeks": streak,
+        }
+
+    def attendance_on(self, on_date=None):
+        """Who trained on a day, latest check-in first."""
+        return self.conn.execute(
+            """SELECT a.member_id, a.checked_at, m.name, m.phone
+                 FROM attendance a JOIN members m ON m.id = a.member_id
+                WHERE a.on_date = ?
+                ORDER BY a.checked_at DESC, a.id DESC""",
+            (parse_date(on_date or today()).isoformat(),),
+        ).fetchall()
+
+    def daily_attendance(self, days=30):
+        """[(date, count)] for the last N days, oldest first, zeros included."""
+        t = today()
+        first = t - datetime.timedelta(days=days - 1)
+        counts = dict(self.conn.execute(
+            "SELECT on_date, COUNT(*) FROM attendance WHERE on_date BETWEEN ? AND ? "
+            "GROUP BY on_date", (first.isoformat(), t.isoformat())).fetchall())
+        out = []
+        for i in range(days):
+            day = first + datetime.timedelta(days=i)
+            out.append((day, counts.get(day.isoformat(), 0)))
+        return out
+
+    def top_attendees(self, start, end, limit=10):
+        return self.conn.execute(
+            """SELECT m.id, m.name, COUNT(*) AS visits
+                 FROM attendance a JOIN members m ON m.id = a.member_id
+                WHERE a.on_date BETWEEN ? AND ? AND m.archived = 0
+                GROUP BY m.id ORDER BY visits DESC, m.name COLLATE NOCASE
+                LIMIT ?""",
+            (parse_date(start).isoformat(), parse_date(end).isoformat(), int(limit)),
+        ).fetchall()
+
+    def inactive_members(self, days=14):
+        """Members with a running subscription who have not trained for N days
+        (or never). These are the ones to call before they quit."""
+        t = today()
+        cutoff = (t - datetime.timedelta(days=days)).isoformat()
+        return self.conn.execute(
+            """SELECT * FROM (
+                 SELECT m.id, m.name, m.phone,
+                        (SELECT MAX(on_date) FROM attendance a
+                          WHERE a.member_id = m.id) AS last_visit
+                   FROM members m
+                   JOIN subscriptions s ON s.member_id = m.id
+                  WHERE m.archived = 0
+                  GROUP BY m.id HAVING MAX(s.end_date) >= ?)
+                WHERE last_visit IS NULL OR last_visit <= ?
+                ORDER BY last_visit IS NOT NULL, last_visit, name COLLATE NOCASE""",
+            (t.isoformat(), cutoff),
+        ).fetchall()
+
+    def all_attendance(self):
+        return self.conn.execute(
+            "SELECT a.on_date, a.checked_at, m.name AS member_name FROM attendance a "
+            "JOIN members m ON m.id = a.member_id "
+            "ORDER BY a.on_date DESC, a.checked_at DESC"
+        ).fetchall()
+
+    def subscription_days(self, member_id, start, end):
+        """Set of ISO dates between start and end covered by a subscription."""
+        days = set()
+        start, end = parse_date(start), parse_date(end)
+        for sub in self.list_subscriptions(member_id):
+            first = max(parse_date(sub["start_date"]), start)
+            last = min(parse_date(sub["end_date"]), end)
+            while first <= last:
+                days.add(first.isoformat())
+                first += datetime.timedelta(days=1)
+        return days
