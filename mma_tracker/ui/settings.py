@@ -3,7 +3,7 @@ import os
 import tkinter as tk
 from tkinter import filedialog, ttk
 
-from .. import __version__, backup, i18n
+from .. import __version__, backup, demo, i18n
 from ..i18n import bidi, t
 from . import dialogs
 from .app import Tab
@@ -53,6 +53,13 @@ class SettingsTab(Tab):
         bar = toolbar(ex, pady=(6, 0))
         button(bar, "export_excel", lambda: self.app.export_excel(self))
 
+        if self.app.demo:
+            dm = ttk.LabelFrame(self, text=t("demo"), padding=8)
+            dm.pack(fill=tk.X, pady=(8, 0))
+            label(dm, t("demo_info"), wraplength=760).pack(fill=tk.X)
+            bar = toolbar(dm, pady=(6, 0))
+            button(bar, "demo_reset", self.reset_demo)
+
         plans = ttk.LabelFrame(self, text=t("plans"), padding=6)
         plans.pack(fill=tk.BOTH, expand=True, pady=(8, 0))
         bar = toolbar(plans)
@@ -83,6 +90,11 @@ class SettingsTab(Tab):
 
     def change_text_size(self):
         self.after_idle(self.app.set_text_size, self.text_size.get())
+
+    def reset_demo(self):
+        if confirm(self, "confirm_demo_reset"):
+            demo.reset(self.store)
+            self.after_idle(self.app.build)
 
     def save_currency(self):
         self.store.set_setting("currency", self.currency.get().strip())

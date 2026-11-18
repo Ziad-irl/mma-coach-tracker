@@ -33,9 +33,10 @@ class Tab(ttk.Frame):
 
 
 class App(object):
-    def __init__(self, root, store):
+    def __init__(self, root, store, demo=False):
         self.root = root
         self.store = store
+        self.demo = demo  # sample data in data/demo.db, never the real database
         self.member_windows = {}
         root.minsize(760, 520)
         root.geometry("1000x660")
@@ -101,10 +102,17 @@ class App(object):
         for child in self.root.winfo_children():
             child.destroy()
         self.member_windows = {}
-        self.root.title(bidi("%s - %s" % (self.brand.name, t("app_title")))
-                        if self.brand.name else t("app_title"))
+        title = (bidi("%s - %s" % (self.brand.name, t("app_title")))
+                 if self.brand.name else t("app_title"))
+        if self.demo:
+            title = bidi("[%s] %s" % (t("demo"), title))
+        self.root.title(title)
         self._setup_style()
 
+        if self.demo:
+            tk.Label(self.root, text=t("demo_banner"), bg="#ef6c00", fg="white",
+                     font=("Tahoma" if i18n.is_rtl() else "Segoe UI", 10, "bold"),
+                     pady=4).pack(side=tk.TOP, fill=tk.X)
         hint = label(self.root, t("hint_main"), style="Hint.TLabel", padding=(8, 0, 8, 4))
         hint.pack(side=tk.BOTTOM, fill=tk.X)
         self.notebook = ttk.Notebook(self.root)
