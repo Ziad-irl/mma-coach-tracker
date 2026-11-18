@@ -8,7 +8,7 @@ from tkinter import font as tkfont
 from tkinter import ttk
 
 from .. import brand, export, i18n
-from ..i18n import t
+from ..i18n import bidi, t
 from ..store import ValidationError
 from .widgets import confirm_danger, label, ordered, show_error, show_info
 
@@ -69,6 +69,8 @@ class App(object):
         style.configure("Hint.TLabel", foreground="#666666")
         style.configure("Debt.TLabel", foreground="#b00020")
         style.configure("BigDebt.TLabel", font=(family, big, "bold"), foreground="#b00020")
+        style.configure("Card.TLabel", font=(family, big - 2, "bold"))
+        style.configure("CardDebt.TLabel", font=(family, big - 2, "bold"), foreground="#b00020")
         style.configure("Danger.TButton", foreground="#b00020")
 
         # Tk 8.6.9 (bundled with Python 3.8.10) ignores Treeview tag colours
@@ -81,23 +83,25 @@ class App(object):
 
     def _bind_keys(self):
         self.root.bind("<F5>", lambda e: self.refresh_current())
+        self.root.bind("<F2>", lambda e: self.show_check_in())
         for key in ("<Control-f>", "<Control-F>"):
             self.root.bind(key, lambda e: self.show_members(focus_search=True))
         for key in ("<Control-n>", "<Control-N>"):
             self.root.bind(key, lambda e: self.members_tab().add())
 
     def build(self):
+        from .attendance import AttendanceTab
         from .dashboard import DashboardTab
         from .debts import DebtsTab
         from .equipment import EquipmentTab
         from .members import MembersTab
         from .settings import SettingsTab
-        tab_classes = [DashboardTab, MembersTab, EquipmentTab, DebtsTab, SettingsTab]
+        tab_classes = [DashboardTab, AttendanceTab, MembersTab, EquipmentTab, DebtsTab, SettingsTab]
 
         for child in self.root.winfo_children():
             child.destroy()
         self.member_windows = {}
-        self.root.title("%s - %s" % (self.brand.name, t("app_title"))
+        self.root.title(bidi("%s - %s" % (self.brand.name, t("app_title")))
                         if self.brand.name else t("app_title"))
         self._setup_style()
 
@@ -166,6 +170,10 @@ class App(object):
 
     def show_tab(self, cls_name):
         self.notebook.select(self.tab_of(cls_name))
+
+    def show_check_in(self):
+        self.show_tab("AttendanceTab")
+        self.tab_of("AttendanceTab").focus()
 
     def open_member(self, member_id):
         from .members import MemberWindow
