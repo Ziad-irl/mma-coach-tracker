@@ -17,10 +17,10 @@ def status_text(end_date):
     if code == "none":
         return t("status_none")
     if code == "expired":
-        return t("status_expired_ago") % days
+        return t("status_expired_one") if days == 1 else t("status_expired_ago") % days
     if code == "today":
         return t("status_ends_today")
-    return t("status_active_days") % days
+    return t("status_active_one") if days == 1 else t("status_active_days") % days
 
 
 def _members_sheet(store):

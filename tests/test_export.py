@@ -90,6 +90,12 @@ class ExportTests(unittest.TestCase):
         self.assertEqual(attendance[0], ["Date", "Time", "Member"])
         self.assertEqual(attendance[1][::2], ["2026-03-10", "Ali"])
 
+    def test_status_wording_is_singular_for_one_day(self):
+        day = datetime.timedelta(days=1)
+        self.assertEqual(export.status_text(store_mod.today() + day), "Active - 1 day left")
+        self.assertEqual(export.status_text(store_mod.today() - day), "Expired yesterday")
+        self.assertEqual(export.status_text(store_mod.today() + 2 * day), "Active - 2 days left")
+
     def test_arabic_headers(self):
         i18n.set_language("ar")
         path = export.export_all(self.s, os.path.join(self.tmp, "ar.xlsx"))
